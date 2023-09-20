@@ -75,11 +75,13 @@ deploy_image() {
 		kubectl run -d "$IMAGE_TAG" --image "$MINECRAFT_IMAGE_REPO":"$IMAGE_TAG"
 		handle_termination
 		handle_error "Unable to run $IMAGE_TAG on kubernetes"
-		kubectl port-forward "$IMAGE_TAG" 25565:25565
-		handle_error "Unable to port-forward $IMAGE_TAG on kubernetes"
+		echo "Kube deploy SUCCESS"
+		gum confirm "Attach to pod?" && printf "\nAttaching..." && kubectl attach "$IMAGE_TAG"
 	elif [ "$DEPLOY" = "Localhost" ]; then
 		podman run -d localhost/minecraft:"$IMAGE_TAG"
+		handle_error "Unable to run Minecraft container"
 		echo "Local deploy SUCCESS"
+		gum confirm "Attach to container?" && printf "\nAttaching..." && podman attach --latest
 	fi
 }
 main() {
