@@ -85,7 +85,7 @@ deploy_image() {
 main() {
 	echo "Minecraft container creator"
 
-	SELECTED_FLAVOR="$(gum filter --header "Server flavor" <<<"$(printf "Vanilla\nPaper\nTekkit 2\nskip")")"
+	SELECTED_FLAVOR="$(gum filter --header "Server flavor" <<<"$(printf "Vanilla\nPaper\nTekkit 2")")"
 	handle_termination
 	handle_error "Error selecting server flavor"
 
