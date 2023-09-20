@@ -60,28 +60,51 @@ extract_server_files() {
 
 	podman container rm "$CONTAINER_NAME" || echo "Unable to delete container $CONTAINER_NAME"
 }
+push_image_to_repo() {
+	if gum confirm "Push image to repo?"; then
+		MINECRAFT_IMAGE_REPO="$(gum input --placeholder docker.io/user/repo)"
+		handle_termination
+		handle_error "Error inputting user image repo"
+		while ! podman login "$MINECRAFT_IMAGE_REPO"; do
+			${}
+		done
+		podman push localhost/minecraft:"$IMAGE_TAG" "docker://$MINECRAFT_IMAGE_REPO":"$IMAGE_TAG"
+		if [ $? != 0 ]; then
+			echo "Unable to push localhost/minecraft:$IMAGE_TAG to $MINECRAFT_IMAGE_REPO"
+			MINECRAFT_IMAGE_REPO=''
+		fi
+	fi
+}
 deploy_image() {
-	DEPLOY="$(gum filter --header "Where to deploy" <<<"$(printf "Don't\nLocalhost\nKubernetes")")"
+	DEPLOY_OPTIONS="Don't\nLocalhost"
+	if ! test -z "$MINECRAFT_IMAGE_REPO"; then
+		DEPLOY_OPTIONS="$DEPLOY_OPTIONS\nKubernetes"
+	fi
+	DEPLOY="$(gum filter --header "Where to deploy" <<<"$(printf "$DEPLOY_OPTIONS")")"
 	handle_termination
 	handle_error "Error selecting where to deploy"
 
 	if [ "$DEPLOY" = "Kubernetes" ]; then
-		MINECRAFT_IMAGE_REPO="docker://$(gum input --placeholder docker.io/user/repo)"
-		handle_termination
-		handle_error "Error inputting user image repo"
-		podman push localhost/minecraft:"$IMAGE_TAG" "$MINECRAFT_IMAGE_REPO":"$IMAGE_TAG"
-		handle_termination
-		handle_error "Unable to push localhost/minecraft:$IMAGE_TAG to $MINECRAFT_IMAGE_REPO"
-		kubectl run -d "$IMAGE_TAG" --image "$MINECRAFT_IMAGE_REPO":"$IMAGE_TAG"
+		POD_NAME="$(tr '_.' '-' <<<"$IMAGE_TAG")-$(date '+%x-%X')"
+		kubectl run "$POD_NAME" --image "$MINECRAFT_IMAGE_REPO":"$IMAGE_TAG"
 		handle_termination
 		handle_error "Unable to run $IMAGE_TAG on kubernetes"
 		echo "Kube deploy SUCCESS"
-		gum confirm "Attach to pod?" && printf "\nAttaching..." && kubectl attach "$IMAGE_TAG"
+		if gum confirm "Attach to pod?"; then
+			printf "\nAttaching..."
+		  if ! kubectl attach "$POD_NAME"; then 
+				printf "\nFailed attaching...\n\nLogs:\n"
+				kubectl logs "$POD_NAME"
+		  fi
+		fi
 	elif [ "$DEPLOY" = "Localhost" ]; then
 		podman run -d localhost/minecraft:"$IMAGE_TAG"
 		handle_error "Unable to run Minecraft container"
 		echo "Local deploy SUCCESS"
-		gum confirm "Attach to container?" && printf "\nAttaching..." && podman attach --latest
+		if gum confirm "Attach to container?"; then
+			printf "\nAttaching..."
+			podman attach --latest
+		fi
 	fi
 }
 main() {
@@ -110,6 +133,7 @@ main() {
 	echo
 	echo "Configuration files are located in $SERVER_FILES"
 	echo "Remove any generated world files and modify any configuration data you want"
+	echo "Make sure to accept EULA!!!"
 	echo
 	read -p "Press Enter to continue..." </dev/tty
 	echo
@@ -119,6 +143,14 @@ main() {
 	handle_termination
 	handle_error "Unable to build image $IMAGE_TAG"
 
+	# detect eula and fix
+	# vanilla show only release versions unless all is selected
+	# paper
+	# tekkit 2
+	# runtime args
+	# Check dependencies before running
+
+	push_image_to_repo
 	deploy_image
 }
 
