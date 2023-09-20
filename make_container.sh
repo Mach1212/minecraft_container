@@ -110,7 +110,6 @@ main() {
 	echo
 	echo "Configuration files are located in $SERVER_FILES"
 	echo "Remove any generated world files and modify any configuration data you want"
-	echo "Then run make_container.sh"
 	echo
 	read -p "Press Enter to continue..." </dev/tty
 	echo
