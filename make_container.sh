@@ -128,7 +128,7 @@ deploy_image() {
 		handle_error "Unable to run Minecraft container"
 		echo "Local deploy SUCCESS"
 		if gum confirm "Attach to container?"; then
-			printf "\nAttaching..."
+			printf "\nAttaching...\nDetatch by pressing both Ctrl-Q with Ctrl-P at the same time"
 			podman attach --latest
 		fi
 	fi
