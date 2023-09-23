@@ -20,11 +20,20 @@ get_text() {
 get_vanilla_download_url() {
 	VERSION_MANIFEST_URL="https://launchermeta.mojang.com/mc/game/version_manifest.json"
 	VERSION_MANIFEST=$(get_text "$VERSION_MANIFEST_URL" "Error getting version manifest from $VERSION_MANIFEST_URL")
-	VERSION_ARRAY=$(jq -r .versions[].id <<<"$VERSION_MANIFEST")
-	handle_error "Unable to parse versions from $VERSION_MANIFEST_URL"
-	SELECTED_VERSION=$(gum filter --header "Vanilla Version" --value "$LATEST_RELEASE" <<<"$VERSION_ARRAY")
-	handle_termination
-	handle_error "Error selecting vanilla versions"
+	while true; do
+		if [ -z "$SELECTED_VERSION" ]; then 
+	    VERSION_ARRAY="$(jq -r '.versions[] | select(.type=="release") | .id' <<<"$VERSION_MANIFEST")"
+	    handle_error "Unable to parse versions from $VERSION_MANIFEST_URL"
+		else
+	    VERSION_ARRAY="$(jq -r '.versions[].id' <<<"$VERSION_MANIFEST")\nDisplay all options"
+		fi
+	  SELECTED_VERSION=$(gum filter --header "Vanilla Version" --value "$LATEST_RELEASE" <<<"$(printf "$VERSION_ARRAY")")
+	  handle_termination
+	  handle_error "Error selecting vanilla versions"
+	  if [ $SELECTED_VERSION != "Display all options" ]; then
+	  	break
+	  fi
+	done
 	DOWNLOAD_MANIFEST_URL="$(jq -r ".versions[] | select(.id == \"$SELECTED_VERSION\") | .url" <<<"$VERSION_MANIFEST")"
 	handle_error "Unable to parse download manifest url from $VERSION_MANIFEST_URL"
 	DOWNLOAD_MANIFEST=$(get_text "$DOWNLOAD_MANIFEST_URL" "Unable to curl $DOWNLOAD_MANIFEST_URL")
