@@ -69,6 +69,23 @@ extract_server_files() {
 
 	podman container rm "$CONTAINER_NAME" || echo "Unable to delete container $CONTAINER_NAME"
 }
+delete_logs() {
+	LOG_PATHS=$(find "$SERVER_FILES" -name "*.log")
+	if [ -n "$LOG_PATHS" ]; then
+	  rm -rf $LOG_PATHS
+	fi
+}
+accept_eula() {
+	EULA_PATH=$(find "$SERVER_FILES" -name "eula.txt")
+	if [ -n "$EULA_PATH" ] && gum confirm "Accept Mojangs eula?"; then
+		sed -i 's/false/true/' "$EULA_PATH"
+    handle_error "Unable to change eula from false to true"
+	fi
+}
+process_server_files() {
+	delete_logs
+	accept_eula
+}
 push_image_to_repo() {
 	if gum confirm "Push image to repo?"; then
 		MINECRAFT_IMAGE_REPO="$(gum input --placeholder docker.io/user/repo)"
@@ -138,11 +155,11 @@ main() {
 	fi
 
 	extract_server_files
+	process_server_files
 
 	echo
 	echo "Configuration files are located in $SERVER_FILES"
 	echo "Remove any generated world files and modify any configuration data you want"
-	echo "Make sure to accept EULA!!!"
 	echo
 	read -p "Press Enter to continue..." </dev/tty
 	echo
