@@ -7,11 +7,26 @@ handle_termination() {
 	fi
 	return $STATUS
 }
+handle_termination_gracefully() {
+	local STATUS="$?"
+	if [ $STATUS = 130 ]; then
+	  return 0
+	fi
+	return $STATUS
+}
 handle_error() {
 	local STATUS="$?"
 	if [ $STATUS != 0 ]; then
 		echo "$1: $STATUS"
 		exit
+	fi
+	return $STATUS
+}
+handle_error_gracefully() {
+	local STATUS="$?"
+	if [ $STATUS != 0 ]; then
+		echo "$1: $STATUS"
+		return 0
 	fi
 	return $STATUS
 }
@@ -92,14 +107,15 @@ process_server_files() {
 push_image_to_repo() {
 	if gum confirm "Push image to repo?"; then
 		MINECRAFT_IMAGE_REPO="$(gum input --placeholder docker.io/user/repo)"
-		handle_termination
-		handle_error "Error inputting user image repo"
+		handle_termination_gracefully
+		handle_error_gracefully "Error inputting user image repo"
 		while ! podman login "$MINECRAFT_IMAGE_REPO"; do
 			${}
 		done
 		podman push localhost/minecraft:"$IMAGE_TAG" "docker://$MINECRAFT_IMAGE_REPO":"$IMAGE_TAG"
-		if [ $? != 0 ]; then
-			echo "Unable to push localhost/minecraft:$IMAGE_TAG to $MINECRAFT_IMAGE_REPO"
+		local STATUS=$?
+		if [ $STATUS != 0 ]; then
+			echo "Unable to push localhost/minecraft:$IMAGE_TAG to $MINECRAFT_IMAGE_REPO: $STATUS"
 			MINECRAFT_IMAGE_REPO=''
 		fi
 	fi
