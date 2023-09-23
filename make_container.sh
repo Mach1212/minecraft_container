@@ -130,7 +130,7 @@ deploy_image() {
 	handle_error "Error selecting where to deploy"
 
 	if [ "$DEPLOY" = "Kubernetes" ]; then
-		POD_NAME="$(tr '_.' '-' <<<"$IMAGE_TAG")-$(tr ':' '.' <<<"$(date '+%x-%X')")"
+		POD_NAME="$(tr '_' '-' <<<"vanilla_1.20.2" | sed 's/\./-/g')-$(date '+%x-%X' | sed 's/[:\/]//g')"
 		kubectl run "$POD_NAME" --image "$MINECRAFT_IMAGE_REPO":"$IMAGE_TAG"
 		handle_termination
 		handle_error "Unable to run $IMAGE_TAG on kubernetes"
