@@ -1,16 +1,19 @@
 #!/usr/bin/bash
 
 handle_termination() {
-	if [ $? = 130 ]; then
+	local STATUS="$?"
+	if [ $STATUS = 130 ]; then
 		exit
 	fi
+	return $STATUS
 }
 handle_error() {
-	STATUS=$?
+	local STATUS="$?"
 	if [ $STATUS != 0 ]; then
 		echo "$1: $STATUS"
 		exit
 	fi
+	return $STATUS
 }
 get_text() {
 	curl -kfs "$1"
